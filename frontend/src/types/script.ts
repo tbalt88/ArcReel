@@ -64,6 +64,31 @@ export interface Dialogue {
   line: string;
 }
 
+export type UtteranceKind = "dialogue" | "voiceover";
+
+/**
+ * Drama 场景级有序发声条目，判别式联合（discriminated union）按 kind 收窄，把 kind ⇄ speaker
+ * 约束编码进类型：dialogue 必带非空 speaker、voiceover 不得带 speaker。非法组合（dialogue 缺
+ * speaker、voiceover 带 speaker）编译期即被拒，与运行时 isUtterance 守卫及后端 Utterance 契约一致。
+ * 取代旧 video_prompt.dialogue + 场景 voiceover 双字段（见 ADR 0040）。
+ * 富审阅 / 编辑 UI 后续提供；本阶段仅类型 / 形状守卫。
+ */
+export interface DialogueUtterance {
+  kind: "dialogue";
+  /** 角色台词必带非空说话人。 */
+  speaker: string;
+  text: string;
+}
+
+export interface VoiceoverUtterance {
+  kind: "voiceover";
+  /** 无说话人画外音：speaker 恒为 null 或缺省。 */
+  speaker?: null;
+  text: string;
+}
+
+export type Utterance = DialogueUtterance | VoiceoverUtterance;
+
 export interface Composition {
   shot_type: ShotType;
   lighting: string;
@@ -119,6 +144,11 @@ export interface DramaScene {
   props?: string[];
   image_prompt: ImagePrompt | string;
   video_prompt: VideoPrompt | string;
+  /**
+   * 场景级有序发声序列：角色台词与画外音按时序排列。新结构（drama）；
+   * 存量 drama 走后端读时迁移，前端读到时此字段可能缺省。
+   */
+  utterances?: Utterance[];
   transition_to_next: TransitionType;
   note?: string;
   generated_assets?: GeneratedAssets;
